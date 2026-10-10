@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Угадай Бит // Apple Music Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&family=Onest:wght@400;700&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f4f0; --fg: #111111; --primary: #002bff; --accent: #ff007f;
+      --card-bg: #ffffff; --shadow: 6px 6px 0px #111111; --border: 3px solid #111111;
+    }
+    [data-theme="dark"] {
+      --bg: #0d0d0f; --fg: #f4f4f0; --primary: #2952ff; --accent: #ff2a8d;
+      --card-bg: #1a1a1e; --shadow: 6px 6px 0px #ff2a8d; --border: 3px solid #f4f4f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Onest', sans-serif; }
+    body { background-color: var(--bg); color: var(--fg); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 16px; overflow-x: hidden; }
+    
+    header { width: 100%; max-width: 600px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: var(--border); padding-bottom: 12px; }
+    h2 { font-family: 'Unbounded', sans-serif; text-transform: uppercase; font-size: 1.4rem; }
+    
+    .logo { font-size: 1.2rem; font-weight: 900; background: var(--accent); color: #fff; padding: 4px 8px; border: var(--border); box-shadow: 3px 3px 0px var(--fg); }
+    .btn { font-family: 'Unbounded', sans-serif; font-weight: 700; background: var(--primary); color: #fff; border: var(--border); padding: 12px 20px; cursor: pointer; box-shadow: var(--shadow); text-transform: uppercase; transition: transform 0.1s, opacity 0.2s; }
+    .btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 3px 3px 0px var(--fg); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; background: gray !important; box-shadow: none; transform: translate(3px, 3px); }
+    .btn-sec { background: var(--card-bg); color: var(--fg); }
+    
+    .container { width: 100%; max-width: 600px; background: var(--card-bg); border: var(--border); padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+    .stats-bar { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 1rem; margin-bottom: 16px; border-bottom: 2px dashed var(--fg); padding-bottom: 8px; }
+    
+    .timer-container { width: 100%; height: 12px; background: var(--bg); border: var(--border); margin-bottom: 20px; overflow: hidden; }
+    .timer-bar { height: 100%; background: var(--accent); width: 100%; transition: width 0.1s linear; }
+    
+    .visualizer { display: flex; align-items: flex-end; gap: 4px; height: 50px; margin-bottom: 20px; border: var(--border); padding: 4px; background: var(--bg); }
+    .bar { flex: 1; background: var(--primary); height: 10px; transition: height 0.05s ease; }
+    
+    .question-title { font-size: 1.1rem; margin-bottom: 16px; font-weight: 700; text-transform: uppercase; }
+    .options-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 20px; }
+    .option-btn { text-align: left; background: var(--bg); color: var(--fg); border: var(--border); padding: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; box-shadow: 4px 4px 0px var(--fg); display: flex; justify-content: space-between; align-items: center; transition: background 0.1s; }
+    .option-btn span { font-family: 'JetBrains Mono', monospace; background: var(--fg); color: var(--bg); padding: 2px 6px; font-size: 0.8rem; }
+    .option-btn:hover { background: var(--primary); color: #fff; }
+    .option-btn.correct { background: #00c853 !important; color: #fff !important; }
+    .option-btn.wrong { background: #ff1744 !important; color: #fff !important; }
+    
+    .hints-section { margin-bottom: 20px; background: var(--bg); border: var(--border); padding: 12px; }
+    .hint-text { font-size: 0.9rem; font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: bold; }
+    
+    .controls-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .hidden { display: none !important; }
+    
+    .track-info-box { margin-top: 15px; padding: 12px; border: 2px dashed var(--primary); font-size: 0.95rem; background: var(--bg); }
+    .theme-toggle { background: none; border: var(--border); padding: 6px 12px; cursor: pointer; font-weight: bold; font-family: 'JetBrains Mono', monospace; color: var(--fg); }
+    .active-turn { color: var(--accent); font-weight: 900; text-decoration: underline; }
+
+    .score-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; margin-bottom: 16px; }
+    .score-table caption { text-align: left; font-family: 'Unbounded', sans-serif; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 8px; }
+    .score-table th, .score-table td { border: 2px solid var(--fg); padding: 8px; text-align: left; }
+    .score-table th { background: var(--fg); color: var(--bg); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; text-transform: uppercase; }
+    .score-table td.num { font-family: 'JetBrains Mono', monospace; font-weight: 700; text-align: right; white-space: nowrap; }
+    .score-table tr.winner td { background: var(--accent); color: #fff; font-weight: 900; }
+    .score-table .plus { color: #00a843; }
+    .score-table .minus { color: #ff1744; }
+    .end-note { margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">УГАДАЙ БИТ ⚡️</div>
+    <button class="theme-toggle" onclick="toggleTheme()">ТЕМА</button>
+  </header>
+
+  <div id="screen-start" class="container">
+    <h2>Угадай исполнителя</h2>
+    <p style="margin: 12px 0; font-size: 0.95rem;">Известные композиции из чартов. Выберите разделы:</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:0.95rem;">
+      <label><input type="checkbox" class="sec-chk" value="pop" checked> Поп</label>
+      <label><input type="checkbox" class="sec-chk" value="rock" checked> Рок</label>
+      <label><input type="checkbox" class="sec-chk" value="hiphop" checked> Хип-хоп</label>
+      <label><input type="checkbox" class="sec-chk" value="electronic" checked> Клубная электроника</label>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:16px;font-size:0.95rem;">
+      <span>Раундов:</span>
+<button class="btn btn-sec" style="padding:4px 14px;" onclick="stepRounds(-1)" aria-label="Меньше">&lt;</button>
+      <b id="rounds-val" style="min-width:2ch;text-align:center;font-size:1.1rem;">10</b>
+      <button class="btn btn-sec" style="padding:4px 14px;" onclick="stepRounds(1)" aria-label="Больше">&gt;</button>
+    </div>
+    <div class="controls-row" style="margin-top: 20px;">
+      <button id="start-btn-1" class="btn" style="flex: 1;" onclick="startGame(1)">1 ИГРОК</button>
+      <button id="start-btn-2" class="btn btn-sec" style="flex: 1;" onclick="startGame(2)">2 ИГРОКА</button>
+    </div>
+    <div style="margin-top:18px;padding-top:14px;border-top:2px solid currentColor;">
+      <div style="font-size:0.95rem;margin-bottom:8px;"><b>Игра по сети (2 устройства)</b></div>
+      <button class="btn btn-sec" style="width:100%;" onclick="hostNet()">СОЗДАТЬ КОМНАТУ</button>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input id="join-code" type="text" maxlength="5" placeholder="Код комнаты" style="flex:1;padding:8px;font-family:inherit;font-size:1rem;text-transform:uppercase;">
+        <button class="btn btn-sec" onclick="joinNet()">ВОЙТИ</button>
+      </div>
+      <p id="net-status" style="margin-top:10px;font-size:0.95rem;"></p>
+    </div>
+    <p id="loading-text" class="hidden" style="margin-top: 15px; font-family: 'JetBrains Mono'; font-weight: bold; color: var(--accent);">СКАНИРОВАНИЕ APPLE MUSIC...</p>
+  </div>
+
+  <div id="screen-game" class="container hidden">
+    <div id="net-badge" class="hidden" style="font-size:0.85rem;margin-bottom:8px;"></div>
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="timer-container"><div id="timer-bar" class="timer-bar"></div></div>
+    
+    <div class="visualizer" id="visualizer">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+
+    <div class="question-title" id="question-title">Угадай исполнителя:</div>
+    <div class="hints-section"><div class="hint-text" id="hint-1">💡 Жанр: ...</div></div>
+    <div class="options-grid" id="options-grid"></div>
+    
+    <div class="controls-row">
+      <button class="btn btn-sec" onclick="useRemoveTwo()" id="btn-remove">Убрать 2 лишних (×0.5)</button>
+      <button class="btn btn-sec" onclick="resetAndStart()">Сдаться</button>
+      <button class="btn btn-sec hidden" id="btn-finish" onclick="finishEarly()">Закончить</button>
+    </div>
+    
+    <div id="track-details" class="track-info-box hidden"></div>
+  </div>
+
+  <div id="screen-end" class="container hidden">
+    <h2>Рейв окончен!</h2>
+    <p style="margin: 16px 0; font-size: 1.1rem; line-height: 1.5;" id="end-summary"></p>
+    <div id="end-table"></div>
+    <button class="btn" style="width: 100%;" onclick="resetAndStart()">В МЕНЮ</button>
+  </div>
+
+  <audio id="audio-player" preload="auto"></audio>
+
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+    <script>
+    let gameMode = 1; 
+    let currentPlayer = 1;
+    let scores = [0, 0, 0]; let roundPoints = 1000; 
+    let currentRound = 0;
+    let roundQuestions = [];
+    let activeQuestion = null;
+    let timerInterval = null;
+    let timeLeft = 20;
+    let isAnswered = false;
+    let animInterval = null;
+    let nextTimeout = null;   // таймер перехода к следующему раунду
+    let gameActive = false;
+    let roundLog = [];        // итоги раундов для итоговой таблицы
+    let roundStartScore = 0;
+
+    // ===== Источники треков: Last.fm (теги) + Apple Music (превью) =====
+    let streamGen = 0;          // поколение игры: останавливает старые фоновые загрузки
+    let queueBusy = null;
+    let queueTarget = 0;
+    let ROUNDS = 10;
+    const LASTFM_KEY = 'daf405527e7e46c50f66244a2f8e7227';
+    let streamPool = [];
+    const streamSeen = new Set();
+    const STORES = ['us','gb','de','nl','au','se','fr','es','it','ca','br'];
+
+    const STYLE_TERMS = {
+      acid:    ['acid house', 'acid techno'],
+      electro: ['electro', 'electro house'],
+      techno:  ['techno', 'melodic techno', 'minimal techno'],
+      edm:     ['edm', 'big room', 'future house'],
+      ambient: ['ambient', 'dark ambient'],
+      house:   ['house', 'deep house', 'tech house', 'progressive house']
+    };
+    // tags — теги Last.fm; genre/deny — проверка жанра трека у Apple Music
+    const SECTIONS = {
+      pop:        { tags: ['pop', 'dance pop', 'europop'],
+                    genre: /pop/i, deny: /k-pop|j-pop|c-pop|latin|rock|hip|rap/i },
+      rock:       { tags: ['rock', 'classic rock', 'alternative rock', 'hard rock', 'grunge', 'punk rock'],
+                    genre: /rock|alternative|metal|punk|grunge|indie/i, deny: /hip|rap|electro|dance/i },
+      hiphop:     { tags: ['hip-hop', 'rap', 'gangsta rap', 'trap'],
+                    genre: /hip|rap/i, deny: null },
+      electronic: { tags: null,
+                    genre: /electro|dance|house|techno|ambient|acid|edm|downtempo|idm|chill/i,
+                    deny: /trance|drum|jungle|dubstep|hardcore|hip|rap|pop|rock|metal|r&b|soul|latin|reggae|country|classical|soundtrack/i }
+    };
+    // известные исполнители для ложных вариантов ответа
+    const SEED_ARTISTS = {
+      pop: ['Madonna','Britney Spears','Michael Jackson','Taylor Swift','ABBA','Rihanna','Katy Perry','Lady Gaga','Ariana Grande','Justin Timberlake','Beyoncé','Dua Lipa','Ed Sheeran','Adele','Kylie Minogue','Bruno Mars','Shakira','Whitney Houston','Cher','Backstreet Boys','Spice Girls','Celine Dion','Elton John','George Michael'],
+      rock: ['Queen','Nirvana','Led Zeppelin','AC/DC','Metallica','The Beatles','The Rolling Stones','Pink Floyd','Guns N\' Roses','Foo Fighters','Red Hot Chili Peppers','Green Day','Linkin Park','U2','Coldplay','Radiohead','Aerosmith','Bon Jovi','Muse','Arctic Monkeys','KISS','Deep Purple','The Doors','Oasis'],
+      hiphop: ['Eminem','Jay-Z','Kanye West','Drake','Kendrick Lamar','50 Cent','Snoop Dogg','Dr. Dre','2Pac','The Notorious B.I.G.','Nas','Ice Cube','Nelly','Lil Wayne','Travis Scott','Cardi B','Post Malone','OutKast','Missy Elliott','Run-D.M.C.','Wu-Tang Clan','Public Enemy'],
+      electronic: ['Daft Punk','The Prodigy','Calvin Harris','David Guetta','Avicii','Swedish House Mafia','deadmau5','Skrillex','Martin Garrix','Tiësto','Armin van Buuren','Fatboy Slim','The Chemical Brothers','Moby','Kraftwerk','Aphex Twin','Carl Cox','Paul Oakenfold','Faithless','Basement Jaxx','Orbital','Underworld','Eric Prydz','Disclosure','Kaskade','Zedd']
+    };
+    const extraArtists = { pop: new Set(), rock: new Set(), hiphop: new Set(), electronic: new Set() };
+
+    const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    const shuffle = a => a.sort(() => 0.5 - Math.random());
+    const pickRand = a => a[Math.floor(Math.random() * a.length)];
+    const totalLabel = () => ROUNDS;
+    const genreOk = (sec, g) => SECTIONS[sec].genre.test(g || '') && !(SECTIONS[sec].deny && SECTIONS[sec].deny.test(g || ''));
+
+    function activeSections() {
+      const v = [...document.querySelectorAll('.sec-chk:checked')].map(c => c.value);
+      return v.length ? v : Object.keys(SECTIONS);
+    }
+    const ALL_STYLE_TERMS = Object.values(STYLE_TERMS).flat();
+    function termFor(sec) {
+      return sec === 'electronic' ? pickRand(ALL_STYLE_TERMS) : pickRand(SECTIONS[sec].tags);
+    }
+    const capitalize = t => t.replace(/\b\w/g, m => m.toUpperCase());
+
+    function toTrack(x, sec) {
+      const y = new Date(x.releaseDate).getFullYear();
+      return { artist: x.artistName, title: x.trackName, year: isNaN(y) ? '—' : y, genre: x.primaryGenreName || '', preview: x.previewUrl, sec: sec };
+    }
+
+    async function resolveCandidate(c) {
+      if (c.preview) return c;
+      const q = encodeURIComponent(c.artist + ' ' + c.title);
+      const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=5`);
+      const d = await res.json();
+      const main = norm(c.artist.split(/,|&| feat\.?| ft\.?| x /i)[0]);
+      const hit = (d.results || []).find(x => x.previewUrl && norm(x.artistName).includes(main) && genreOk(c.sec, x.primaryGenreName));
+      if (!hit) return null;
+      const t = toTrack(hit, c.sec);
+      if (c.tag) t.genre = capitalize(c.tag);
+      return t;
+    }
+
+    let lfDisabled = false;   // станет true, если Last.fm не отвечает: тогда ищем через Apple
+    async function fetchSectionTracks(sec) {
+      const tag = termFor(sec);
+      if (!lfDisabled) {
+        try {
+          const page = 1 + Math.floor(Math.random() * 5);
+          const url = `https://ws.audioscrobbler.com/2.0/?method=tag.gettoptracks&tag=${encodeURIComponent(tag)}&limit=50&page=${page}&api_key=${encodeURIComponent(LASTFM_KEY)}&format=json`;
+          const d = await (await fetch(url)).json();
+          if (d.error) throw new Error(d.message);
+          ((d.tracks && d.tracks.track) || []).forEach(x => {
+            if (x.name && x.artist && x.artist.name) streamPool.push({ artist: x.artist.name, title: x.name, tag: tag, sec: sec });
+          });
+          return;
+        } catch (e) { console.warn('Last.fm недоступен, перехожу на поиск Apple:', e); lfDisabled = true; }
+      }
+      try {
+        const url = `https://itunes.apple.com/search?term=${encodeURIComponent(tag)}&entity=song&limit=50&country=${pickRand(STORES)}`;
+        const d = await (await fetch(url)).json();
+        (d.results || []).filter(x => x.previewUrl && genreOk(sec, x.primaryGenreName)).forEach(x => streamPool.push(toTrack(x, sec)));
+      } catch (e) { console.warn('Поиск Apple недоступен', e); }
+    }
+
+    // Каждое пополнение берёт треки из ВСЕХ выбранных разделов и перемешивает их
+    async function refillStreamPool() {
+      for (let i = 0; i < 2 && streamPool.length === 0; i++) {
+        await Promise.all(activeSections().map(fetchSectionTracks));
+      }
+      shuffle(streamPool);
+    }
+
+    async function nextStreamTrack() {
+      const gen = streamGen;
+      for (let i = 0; i < 15 && gen === streamGen; i++) {
+        if (streamPool.length === 0) await refillStreamPool();
+        const c = streamPool.shift();
+        if (!c) continue;
+        const key = norm(c.artist + ' - ' + c.title);
+        if (streamSeen.has(key)) continue;
+        streamSeen.add(key);
+        try {
+          const t = await resolveCandidate(c);
+          if (t) { extraArtists[t.sec].add(t.artist); return t; }
+        } catch (e) { console.warn(e); }
+      }
+      return null;
+    }
+
+    function ensureQueue(n) {
+      queueTarget = Math.max(queueTarget, n);
+      if (queueBusy) return queueBusy;
+      const gen = streamGen;
+      queueBusy = (async () => {
+        try {
+          while (gen === streamGen && roundQuestions.length - currentRound < queueTarget && roundQuestions.length < ROUNDS) {
+            const t = await nextStreamTrack();
+            if (!t || gen !== streamGen) break;
+            roundQuestions.push(t);
+          }
+        } finally {
+          if (gen === streamGen) queueBusy = null;
+        }
+      })();
+      return queueBusy;
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+    });
+
+    window.stepRounds = function(d) {
+      ROUNDS = Math.max(1, Math.min(50, ROUNDS + d));
+      document.getElementById('rounds-val').textContent = ROUNDS;
+    };
+
+    // ===== Игра по сети (WebRTC через PeerJS) =====
+    // Хозяин (Игрок 1) ведёт всю игру и каждые 250 мс шлёт гостю снимок экрана.
+    // Гость (Игрок 2) только показывает снимок и отправляет свои ответы.
+    const net = { on: false, role: null, peer: null, conn: null, tick: null, lastSrc: '', lastOpts: '', myTurn: false, rmOff: true };
+    const NET_PREFIX = 'ugadai-bit-';
+    const setNet = html => { document.getElementById('net-status').innerHTML = html; };
+
+    function netCleanup() {
+      net.on = false;
+      clearInterval(net.tick); net.tick = null;
+      try { if (net.conn) net.conn.close(); } catch (e) {}
+      try { if (net.peer) net.peer.destroy(); } catch (e) {}
+      net.role = null; net.peer = null; net.conn = null; net.lastSrc = ''; net.lastOpts = '';
+      document.getElementById('net-badge').classList.add('hidden');
+    }
+
+    function netSnapshot() {
+      const $ = id => document.getElementById(id);
+      const audio = $('audio-player');
+      const onGame = !$('screen-game').classList.contains('hidden');
+      const onEnd = !$('screen-end').classList.contains('hidden');
+      return {
+        screen: onEnd ? 'end' : (onGame ? 'game' : 'start'),
+        stats: $('stats-bar').innerHTML,
+        title: $('question-title').innerText,
+        hint: $('hint-1').innerHTML,
+        timer: $('timer-bar').style.width,
+        opts: [...$('options-grid').children].map(b => ({ t: b.dataset.opt, c: b.className, v: b.style.visibility })),
+        detHidden: $('track-details').classList.contains('hidden'),
+        det: $('track-details').innerHTML,
+        src: audio.src,
+        playing: onGame && !audio.paused,
+        endSummary: $('end-summary').innerHTML,
+        endTable: $('end-table').innerHTML,
+        myTurn: onGame && currentPlayer === 2 && !isAnswered,
+        rmOff: $('btn-remove').disabled
+      };
+    }
+
+    function netSync() {
+      if (net.on && net.role === 'host' && net.conn && net.conn.open) {
+        try { net.conn.send(netSnapshot()); } catch (e) { console.warn(e); }
+      }
+    }
+
+    function onNetClose() {
+      if (!net.on) return;
+      const role = net.role;
+      netCleanup();
+      if (role === 'host') {
+        if (gameActive) {
+          endGame(true);
+          document.getElementById('end-summary').insertAdjacentText('beforeend', ' (соперник отключился)');
+        }
+      } else {
+        resetAndStart();
+        setNet('Связь с хозяином потеряна.');
+      }
+    }
+
+    function showBadge(text) {
+      const b = document.getElementById('net-badge');
+      b.textContent = text; b.classList.remove('hidden');
+    }
+
+    window.hostNet = function() {
+      netCleanup();
+      if (typeof Peer === 'undefined') { setNet('Не загрузилась библиотека связи. Нужен интернет.'); return; }
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const code = Array.from({ length: 5 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+      const peer = new Peer(NET_PREFIX + code);
+      net.peer = peer; net.role = 'host';
+      setNet('Создаю комнату…');
+      peer.on('open', () => setNet(`Код комнаты: <b style="font-size:1.4rem;letter-spacing:3px">${code}</b><br>Ждём второго игрока… <button class="btn btn-sec" style="padding:2px 10px;" onclick="netCleanup();setNet('')">Отмена</button>`));
+      peer.on('error', e => setNet('Ошибка связи: ' + esc(e.type || e)));
+      peer.on('connection', conn => {
+        if (net.conn) { conn.close(); return; }
+        net.conn = conn;
+        conn.on('data', onHostData);
+        conn.on('close', onNetClose);
+        conn.on('open', () => {
+          net.on = true;
+          setNet('');
+          showBadge('Сетевая игра: вы — Игрок 1. Игрок 2 отвечает на своём устройстве.');
+          startGame(2, true);
+          net.tick = setInterval(netSync, 250);
+        });
+      });
+    };
+
+    function onHostData(m) {
+      if (!m || !gameActive) return;
+      if (m.t === 'ans' && currentPlayer === 2 && !isAnswered) {
+        const btn = document.getElementById('options-grid').children[m.i];
+        if (btn && btn.style.visibility !== 'hidden') selectAnswer(btn.dataset.opt, btn, true);
+      } else if (m.t === 'rm' && currentPlayer === 2) {
+        useRemoveTwo(true);
+      }
+    }
+
+    window.joinNet = function() {
+      netCleanup();
+      const code = document.getElementById('join-code').value.trim().toUpperCase();
+      if (!code) { setNet('Введите код комнаты.'); return; }
+      if (typeof Peer === 'undefined') { setNet('Не загрузилась библиотека связи. Нужен интернет.'); return; }
+      const peer = new Peer();
+      net.peer = peer; net.role = 'guest';
+      setNet('Подключаюсь…');
+      peer.on('error', e => setNet('Не удалось подключиться: ' + esc(e.type === 'peer-unavailable' ? 'комната не найдена' : (e.type || e))));
+      peer.on('open', () => {
+        const conn = peer.connect(NET_PREFIX + code, { reliable: true });
+        net.conn = conn;
+        conn.on('open', () => { net.on = true; setNet('Подключено. Ждём начала игры…'); });
+        conn.on('data', guestRender);
+        conn.on('close', onNetClose);
+      });
+    };
+
+    function guestRender(s) {
+      if (!net.on || net.role !== 'guest') return;
+      const $ = id => document.getElementById(id);
+      const audio = $('audio-player');
+      net.myTurn = s.myTurn; net.rmOff = s.rmOff;
+      if (s.screen === 'start') { setNet('Подключено. Хозяин готовит игру…'); return; }
+
+      $('screen-start').classList.add('hidden');
+      $('screen-game').classList.toggle('hidden', s.screen !== 'game');
+      $('screen-end').classList.toggle('hidden', s.screen !== 'end');
+      $('btn-finish').classList.add('hidden');
+      showBadge('Сетевая игра: вы — Игрок 2');
+
+      if (s.screen === 'end') {
+        $('end-summary').innerHTML = s.endSummary;
+        $('end-table').innerHTML = s.endTable;
+        audio.pause(); clearInterval(animInterval); animInterval = null;
+        return;
+      }
+
+      $('stats-bar').innerHTML = s.stats;
+      $('question-title').innerText = s.title;
+      $('hint-1').innerHTML = s.hint;
+      $('timer-bar').style.width = s.timer;
+
+      const grid = $('options-grid');
+      const sig = JSON.stringify(s.opts.map(o => o.t));
+      if (sig !== net.lastOpts) {
+        grid.innerHTML = '';
+        s.opts.forEach((o, i) => {
+          const b = document.createElement('button');
+          b.innerHTML = `${esc(o.t)} <span>[${i + 1}]</span>`;
+          b.onclick = () => { if (net.myTurn) net.conn.send({ t: 'ans', i: i }); };
+          grid.appendChild(b);
+        });
+        net.lastOpts = sig;
+      }
+      s.opts.forEach((o, i) => { grid.children[i].className = o.c; grid.children[i].style.visibility = o.v; });
+
+      $('track-details').classList.toggle('hidden', s.detHidden);
+      $('track-details').innerHTML = s.det;
+      $('btn-remove').disabled = !s.myTurn || s.rmOff;
+
+      if (s.src && s.src !== net.lastSrc) { audio.src = s.src; net.lastSrc = s.src; }
+      if (s.playing) {
+        if (audio.paused) audio.play().catch(() => {});
+        if (!animInterval) startVisualizerAnimation();
+      } else {
+        audio.pause(); clearInterval(animInterval); animInterval = null;
+      }
+    }
+
+    window.toggleTheme = function() {
+      const html = document.documentElement;
+      html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    };
+
+    window.startGame = async function(mode, viaNet) {
+      if (viaNet !== true) netCleanup();
+      gameMode = mode;
+      document.getElementById('start-btn-1').disabled = true;
+      document.getElementById('start-btn-2').disabled = true;
+      document.getElementById('loading-text').classList.remove('hidden');
+
+
+      streamGen++; queueBusy = null; queueTarget = 0;
+      streamPool = [];   // очередь от прошлой игры содержит треки старых разделов
+      roundQuestions = [];
+      currentRound = 0;
+      await ensureQueue(2);
+
+      document.getElementById('start-btn-1').disabled = false;
+      document.getElementById('start-btn-2').disabled = false;
+      document.getElementById('loading-text').classList.add('hidden');
+
+      if (roundQuestions.length === 0) {
+         alert("Не удалось получить треки. Проверьте интернет.");
+         return;
+      }
+
+      currentRound = 0;
+      scores = [0, 0, 0];
+      roundLog = [];
+      gameActive = true;
+      clearTimeout(nextTimeout);
+      document.getElementById('btn-finish').classList.toggle('hidden', gameMode !== 2);
+
+      document.getElementById('screen-start').classList.add('hidden');
+      document.getElementById('screen-end').classList.add('hidden');
+      document.getElementById('screen-game').classList.remove('hidden');
+      
+      nextRound();
+    };
+
+    window.resetAndStart = function() {
+      netCleanup();
+      gameActive = false;
+      streamGen++; queueBusy = null;
+      clearTimeout(nextTimeout);
+      clearInterval(timerInterval);
+      clearInterval(animInterval);
+      document.getElementById('screen-end').classList.add('hidden');
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-start').classList.remove('hidden');
+      document.getElementById('audio-player').pause();
+    };
+
+    function updateStatsUI() {
+      const statsBar = document.getElementById('stats-bar');
+      const qTitle = document.getElementById('question-title');
+      
+      if (gameMode === 1) {
+        statsBar.innerHTML = `<span>РАУНД: ${currentRound}/${totalLabel()}</span><span>ЗА ОТВЕТ: ${Math.round(roundPoints)}</span><span>ОЧКИ: ${Math.round(scores[1])}</span>`;
+        qTitle.innerText = "Угадай исполнителя:";
+      } else {
+        const p1Class = currentPlayer === 1 ? 'active-turn' : '';
+        const p2Class = currentPlayer === 2 ? 'active-turn' : '';
+        statsBar.innerHTML = `
+          <span class="${p1Class}">ИГР 1: ${Math.round(scores[1])}</span>
+          <span>Р: ${currentRound}/${totalLabel()} · +${Math.round(roundPoints)}</span>
+          <span class="${p2Class}">ИГР 2: ${Math.round(scores[2])}</span>
+        `;
+        qTitle.innerText = `Ход Игрока ${currentPlayer}. Угадай исполнителя:`;
+      }
+    }
+
+    async function nextRound() {
+      if (currentRound >= ROUNDS) {
+        endGame();
+        return;
+      }
+      if (currentRound >= roundQuestions.length) {
+        document.getElementById('question-title').innerText = 'Подбираю следующий трек…';
+        await ensureQueue(1);
+        if (!gameActive) return;
+      }
+      if (currentRound >= roundQuestions.length) {
+        endGame();
+        return;
+      }
+      
+      isAnswered = false;
+      document.getElementById('track-details').classList.add('hidden');
+      activeQuestion = roundQuestions[currentRound];
+      
+      if (gameMode === 2) currentPlayer = (currentRound % 2 === 0) ? 1 : 2;
+      else currentPlayer = 1;
+      
+      currentRound++;
+      roundStartScore = scores[currentPlayer];
+      updateStatsUI();
+      document.getElementById('hint-1').innerHTML = `💡 Жанр: ${activeQuestion.genre} | Год: ${activeQuestion.year}`;
+      
+      setupOptions();
+      playAudio(activeQuestion);
+      startTimer();
+      startVisualizerAnimation();
+      ensureQueue(3);
+      netSync();
+    }
+
+    function playAudio(q) {
+      const audio = document.getElementById('audio-player');
+      audio.src = q.preview;
+      audio.volume = 1.0;
+      audio.play().catch(e => console.log("Блокировка автоплея", e));
+    }
+
+    function setupOptions() {
+      const grid = document.getElementById('options-grid');
+      grid.innerHTML = '';
+      
+      let options = [activeQuestion.artist];
+      // Набираем уникальных ложных исполнителей из всей базы
+      const artistPool = [...new Set([...SEED_ARTISTS[activeQuestion.sec], ...extraArtists[activeQuestion.sec]])].filter(a => a !== activeQuestion.artist);
+      while(options.length < 4) {
+        let randArtist = pickRand(artistPool);
+        if (!options.includes(randArtist)) options.push(randArtist);
+      }
+      options.sort(() => 0.5 - Math.random());
+      
+      options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML = `${opt} <span>[${idx + 1}]</span>`;
+        btn.dataset.opt = opt;
+        btn.onclick = () => selectAnswer(opt, btn);
+        grid.appendChild(btn);
+      });
+      document.getElementById('btn-remove').disabled = false;
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timeLeft = 20;
+      roundPoints = 1000;
+      const timerBar = document.getElementById('timer-bar');
+      
+      timerInterval = setInterval(() => {
+        timeLeft -= 0.1;
+        timerBar.style.width = `${(timeLeft / 20) * 100}%`;
+        
+        if (!isAnswered) {
+          roundPoints = Math.max(100, roundPoints - 4.5);
+          updateStatsUI();
+        }
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          if (!isAnswered) handleTimeOut();
+        }
+      }, 100);
+    }
+
+    window.selectAnswer = function(selectedOpt, btnElement, fromGuest) {
+      if (isAnswered) return;
+      if (net.on && net.role === 'host' && currentPlayer === 2 && !fromGuest) return;  // ход соперника
+      isAnswered = true;
+      clearInterval(timerInterval);
+      document.getElementById('audio-player').pause();
+      clearInterval(animInterval);
+
+      const isCorrect = (selectedOpt === activeQuestion.artist);
+      if (isCorrect) {
+        btnElement.classList.add('correct');
+        scores[currentPlayer] += Math.round(roundPoints);
+      } else {
+        btnElement.classList.add('wrong');
+        roundPoints = 0;
+        document.querySelectorAll('.option-btn').forEach(b => {
+          if (b.innerText.includes(activeQuestion.artist)) b.classList.add('correct');
+        });
+      }
+      
+      updateStatsUI();
+      logRound(isCorrect ? 'ok' : 'wrong');
+      showTrackDetails();
+      nextTimeout = setTimeout(nextRound, 4500);
+      netSync();
+    };
+
+    function handleTimeOut() {
+      if (isAnswered) return;
+      isAnswered = true;
+      document.getElementById('audio-player').pause();
+      clearInterval(animInterval);
+      roundPoints = 0;
+      
+      document.querySelectorAll('.option-btn').forEach(b => {
+        if (b.innerText.includes(activeQuestion.artist)) b.classList.add('correct');
+      });
+      logRound('timeout');
+      showTrackDetails();
+      nextTimeout = setTimeout(nextRound, 4500);
+      netSync();
+    }
+
+    function logRound(result) {
+      roundLog.push({
+        n: currentRound,
+        player: currentPlayer,
+        track: `${activeQuestion.artist} — ${activeQuestion.title}`,
+        result: result,
+        delta: result === 'ok' ? Math.round(roundPoints) : 0
+      });
+    }
+
+    function showTrackDetails() {
+      const detailsBox = document.getElementById('track-details');
+      detailsBox.classList.remove('hidden');
+      detailsBox.innerHTML = `<strong>🎵 ${esc(activeQuestion.artist)} — ${esc(activeQuestion.title)} (${esc(String(activeQuestion.year))})</strong>`;
+    }
+
+    window.useRemoveTwo = function(fromGuest) {
+      if (net.on && net.role === 'guest') { if (net.myTurn && !net.rmOff) net.conn.send({ t: 'rm' }); return; }
+      if (net.on && net.role === 'host' && currentPlayer === 2 && fromGuest !== true) return;
+      if (isAnswered) return;
+      roundPoints *= 0.5;
+      updateStatsUI();
+      
+      let buttons = Array.from(document.querySelectorAll('.option-btn'));
+      let wrongButtons = buttons.filter(b => !b.innerText.includes(activeQuestion.artist));
+      
+      wrongButtons.sort(() => 0.5 - Math.random()).slice(0, 2).forEach(b => {
+        b.style.visibility = 'hidden';
+      });
+      document.getElementById('btn-remove').disabled = true;
+      netSync();
+    };
+
+    window.addEventListener('keydown', (e) => {
+      if (['1', '2', '3', '4'].includes(e.key) && !isAnswered) {
+        const index = parseInt(e.key) - 1;
+        const buttons = document.querySelectorAll('.option-btn');
+        if (buttons[index] && buttons[index].style.visibility !== 'hidden') buttons[index].click();
+      }
+    });
+
+    function startVisualizerAnimation() {
+      const bars = document.querySelectorAll('.visualizer .bar');
+      clearInterval(animInterval);
+      animInterval = setInterval(() => {
+        bars.forEach(bar => bar.style.height = `${Math.floor(Math.random() * 40) + 6}px`);
+      }, 100);
+    }
+
+    window.finishEarly = function() {
+      if (!gameActive) return;
+      endGame(true);
+    };
+
+    function endGame(early) {
+      if (!gameActive) return;
+      gameActive = false;
+      streamGen++; queueBusy = null;
+      clearTimeout(nextTimeout);
+      clearInterval(timerInterval);
+      clearInterval(animInterval);
+      document.getElementById('audio-player').pause();
+
+      // Раунд, который не успели доиграть, не засчитываем: возвращаем очки игрока
+      if (early && !isAnswered && currentRound > 0) {
+        scores[currentPlayer] = roundStartScore;
+        currentRound--;
+      }
+
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-end').classList.remove('hidden');
+
+      const summary = document.getElementById('end-summary');
+      const table = document.getElementById('end-table');
+      table.innerHTML = '';
+
+      if (gameMode === 1) {
+        summary.innerHTML = `Вы набрали: ${Math.round(scores[1])} очков!` + '';
+        return;
+      }
+
+      const s1 = Math.round(scores[1]), s2 = Math.round(scores[2]);
+      let verdict;
+      if (s1 > s2) verdict = "🏆 Победил Игрок 1!";
+      else if (s2 > s1) verdict = "🏆 Победил Игрок 2!";
+      else verdict = "🤝 Ничья!";
+      summary.textContent = verdict;
+
+      const stat = p => {
+        const mine = roundLog.filter(r => r.player === p);
+        return {
+          p: p,
+          score: Math.round(scores[p]),
+          ok: mine.filter(r => r.result === 'ok').length,
+          total: mine.length
+        };
+      };
+      const rows = [stat(1), stat(2)].sort((a, b) => b.score - a.score);
+      const medals = ['🥇', '🥈'];
+      const tie = rows[0].score === rows[1].score;
+
+      let html = '';
+      if (early) {
+        html += `<p class="end-note">Игра завершена досрочно: сыграно раундов — ${roundLog.length}${' из ' + ROUNDS}.</p>`;
+      }
+
+      html += `<table class="score-table"><caption>Итоговая таблица</caption>
+        <thead><tr><th>Место</th><th>Игрок</th><th>Очки</th><th>Верно</th></tr></thead><tbody>`;
+      rows.forEach((r, i) => {
+        const place = tie ? '🤝' : medals[i];
+        const cls = (!tie && i === 0) ? ' class="winner"' : '';
+        html += `<tr${cls}><td>${place}</td><td>Игрок ${r.p}</td><td class="num">${r.score}</td><td class="num">${r.ok}/${r.total}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+
+      if (roundLog.length > 0) {
+        const label = { ok: '✅', wrong: '❌', timeout: '⏰' };
+        html += `<table class="score-table"><caption>Раунды</caption>
+          <thead><tr><th>№</th><th>Трек</th><th>Игрок</th><th>Итог</th></tr></thead><tbody>`;
+        roundLog.forEach(r => {
+          const sign = r.delta >= 0 ? '+' : '';
+          const cls = r.delta >= 0 ? 'plus' : 'minus';
+          html += `<tr><td class="num">${r.n}</td><td>${esc(r.track)}</td><td>И${r.player}</td><td class="num">${label[r.result]} <span class="${cls}">${sign}${r.delta}</span></td></tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+
+      table.innerHTML = html;
+      netSync();
+    }
+  </script>
+</body>
+</html>
