@@ -3,74 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Угадай Бит // Apple Music Edition</title>
+  <title>Угадай исполнителя</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&family=Onest:wght@400;700&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Unbounded:wght@600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f4f4f0; --fg: #111111; --primary: #002bff; --accent: #ff007f;
-      --card-bg: #ffffff; --shadow: 6px 6px 0px #111111; --border: 3px solid #111111;
+      --bg: #f5f5f4; --fg: #1a1a1a; --muted: #6b6b66; --card: #ffffff; --line: #e2e2df;
+      --accent: #2563eb; --accent-soft: #e8efff; --ok: #1f9d55; --bad: #d64545;
     }
     [data-theme="dark"] {
-      --bg: #0d0d0f; --fg: #f4f4f0; --primary: #2952ff; --accent: #ff2a8d;
-      --card-bg: #1a1a1e; --shadow: 6px 6px 0px #ff2a8d; --border: 3px solid #f4f4f0;
+      --bg: #121212; --fg: #ececec; --muted: #9a9a95; --card: #1b1b1b; --line: #2e2e2e;
+      --accent: #5b8cff; --accent-soft: #1d2740; --ok: #3ab26c; --bad: #e06666;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Onest', sans-serif; }
-    body { background-color: var(--bg); color: var(--fg); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 16px; overflow-x: hidden; }
-    
-    header { width: 100%; max-width: 600px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: var(--border); padding-bottom: 12px; }
-    h2 { font-family: 'Unbounded', sans-serif; text-transform: uppercase; font-size: 1.4rem; }
-    
-    .logo { font-size: 1.2rem; font-weight: 900; background: var(--accent); color: #fff; padding: 4px 8px; border: var(--border); box-shadow: 3px 3px 0px var(--fg); }
-    .btn { font-family: 'Unbounded', sans-serif; font-weight: 700; background: var(--primary); color: #fff; border: var(--border); padding: 12px 20px; cursor: pointer; box-shadow: var(--shadow); text-transform: uppercase; transition: transform 0.1s, opacity 0.2s; }
-    .btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 3px 3px 0px var(--fg); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; background: gray !important; box-shadow: none; transform: translate(3px, 3px); }
-    .btn-sec { background: var(--card-bg); color: var(--fg); }
-    
-    .container { width: 100%; max-width: 600px; background: var(--card-bg); border: var(--border); padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
-    .stats-bar { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 1rem; margin-bottom: 16px; border-bottom: 2px dashed var(--fg); padding-bottom: 8px; }
-    
-    .timer-container { width: 100%; height: 12px; background: var(--bg); border: var(--border); margin-bottom: 20px; overflow: hidden; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--fg); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 16px; overflow-x: hidden; line-height: 1.45; }
+
+    h2, .logo, .score-table caption { font-family: 'Unbounded', sans-serif; font-weight: 600; }
+    header { width: 100%; max-width: 600px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+    h2 { font-size: 1.25rem; }
+    .logo { font-size: 1rem; }
+
+    .btn { font-weight: 500; font-size: 0.95rem; background: var(--accent); color: #fff; border: 1px solid var(--accent); border-radius: 8px; padding: 10px 18px; cursor: pointer; transition: opacity 0.15s, background 0.15s; }
+    .btn:hover:not(:disabled) { opacity: 0.9; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-sec { background: transparent; color: var(--fg); border-color: var(--line); }
+    .btn-sec:hover:not(:disabled) { background: var(--accent-soft); opacity: 1; }
+
+    .container { width: 100%; max-width: 600px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .stats-bar { display: flex; justify-content: space-between; font-size: 0.95rem; font-variant-numeric: tabular-nums; margin-bottom: 14px; color: var(--muted); }
+
+    .timer-container { width: 100%; height: 6px; background: var(--line); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
     .timer-bar { height: 100%; background: var(--accent); width: 100%; transition: width 0.1s linear; }
-    
-    .visualizer { display: flex; align-items: flex-end; gap: 4px; height: 50px; margin-bottom: 20px; border: var(--border); padding: 4px; background: var(--bg); }
-    .bar { flex: 1; background: var(--primary); height: 10px; transition: height 0.05s ease; }
-    
-    .question-title { font-size: 1.1rem; margin-bottom: 16px; font-weight: 700; text-transform: uppercase; }
-    .options-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 20px; }
-    .option-btn { text-align: left; background: var(--bg); color: var(--fg); border: var(--border); padding: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; box-shadow: 4px 4px 0px var(--fg); display: flex; justify-content: space-between; align-items: center; transition: background 0.1s; }
-    .option-btn span { font-family: 'JetBrains Mono', monospace; background: var(--fg); color: var(--bg); padding: 2px 6px; font-size: 0.8rem; }
-    .option-btn:hover { background: var(--primary); color: #fff; }
-    .option-btn.correct { background: #00c853 !important; color: #fff !important; }
-    .option-btn.wrong { background: #ff1744 !important; color: #fff !important; }
-    
-    .hints-section { margin-bottom: 20px; background: var(--bg); border: var(--border); padding: 12px; }
-    .hint-text { font-size: 0.9rem; font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: bold; }
-    
+
+    .visualizer { display: flex; align-items: flex-end; gap: 4px; height: 50px; margin-bottom: 20px; }
+    .bar { flex: 1; background: var(--accent); opacity: 0.55; border-radius: 2px; height: 10px; transition: height 0.05s ease; }
+
+    .question-title { font-size: 1rem; margin-bottom: 14px; font-weight: 600; }
+    .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
+    .option-btn { text-align: left; background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 1rem; font-weight: 500; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.12s, border-color 0.12s; }
+    .option-btn span { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+    .option-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+    .option-btn.correct { background: var(--ok) !important; border-color: var(--ok) !important; color: #fff !important; }
+    .option-btn.wrong { background: var(--bad) !important; border-color: var(--bad) !important; color: #fff !important; }
+    .option-btn.correct span, .option-btn.wrong span { color: #fff; }
+
+    .hints-section { margin-bottom: 16px; }
+    .hint-text { font-size: 0.9rem; color: var(--muted); }
+
     .controls-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .hidden { display: none !important; }
-    
-    .track-info-box { margin-top: 15px; padding: 12px; border: 2px dashed var(--primary); font-size: 0.95rem; background: var(--bg); }
-    .theme-toggle { background: none; border: var(--border); padding: 6px 12px; cursor: pointer; font-weight: bold; font-family: 'JetBrains Mono', monospace; color: var(--fg); }
-    .active-turn { color: var(--accent); font-weight: 900; text-decoration: underline; }
+    input[type=text] { border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg); }
+    input[type=checkbox] { accent-color: var(--accent); }
 
-    .score-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; margin-bottom: 16px; }
-    .score-table caption { text-align: left; font-family: 'Unbounded', sans-serif; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 8px; }
-    .score-table th, .score-table td { border: 2px solid var(--fg); padding: 8px; text-align: left; }
-    .score-table th { background: var(--fg); color: var(--bg); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; text-transform: uppercase; }
-    .score-table td.num { font-family: 'JetBrains Mono', monospace; font-weight: 700; text-align: right; white-space: nowrap; }
-    .score-table tr.winner td { background: var(--accent); color: #fff; font-weight: 900; }
-    .score-table .plus { color: #00a843; }
-    .score-table .minus { color: #ff1744; }
-    .end-note { margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+    .track-info-box { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 0.95rem; background: var(--bg); }
+    .theme-toggle { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 0.85rem; color: var(--fg); }
+    .active-turn { color: var(--accent); font-weight: 600; }
+
+    .score-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
+    .score-table caption { text-align: left; font-size: 0.85rem; margin-bottom: 8px; }
+    .score-table th, .score-table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
+    .score-table th { color: var(--muted); font-size: 0.8rem; font-weight: 500; }
+    .score-table td.num { font-weight: 600; text-align: right; white-space: nowrap; }
+    .score-table tr.winner td { background: var(--accent-soft); font-weight: 600; }
+    .score-table .plus { color: var(--ok); }
+    .score-table .minus { color: var(--bad); }
+    .end-note { margin-bottom: 16px; color: var(--muted); font-size: 0.9rem; }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="logo">УГАДАЙ БИТ ⚡️</div>
-    <button class="theme-toggle" onclick="toggleTheme()">ТЕМА</button>
+    <div class="logo">Угадай исполнителя</div>
+    <button class="theme-toggle" onclick="toggleTheme()">Тема</button>
   </header>
 
   <div id="screen-start" class="container">
@@ -92,16 +97,16 @@
       <button id="start-btn-1" class="btn" style="flex: 1;" onclick="startGame(1)">1 ИГРОК</button>
       <button id="start-btn-2" class="btn btn-sec" style="flex: 1;" onclick="startGame(2)">2 ИГРОКА</button>
     </div>
-    <div style="margin-top:18px;padding-top:14px;border-top:2px solid currentColor;">
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
       <div style="font-size:0.95rem;margin-bottom:8px;"><b>Игра по сети (2 устройства)</b></div>
       <button class="btn btn-sec" style="width:100%;" onclick="hostNet()">СОЗДАТЬ КОМНАТУ</button>
       <div style="display:flex;gap:8px;margin-top:8px;">
-        <input id="join-code" type="text" maxlength="5" placeholder="Код комнаты" style="flex:1;padding:8px;font-family:inherit;font-size:1rem;text-transform:uppercase;">
+        <input id="join-code" type="text" maxlength="5" placeholder="Код комнаты" style="flex:1;padding:8px;font-family:inherit;font-size:1rem;">
         <button class="btn btn-sec" onclick="joinNet()">ВОЙТИ</button>
       </div>
       <p id="net-status" style="margin-top:10px;font-size:0.95rem;"></p>
     </div>
-    <p id="loading-text" class="hidden" style="margin-top: 15px; font-family: 'JetBrains Mono'; font-weight: bold; color: var(--accent);">СКАНИРОВАНИЕ APPLE MUSIC...</p>
+    <p id="loading-text" class="hidden" style="margin-top: 15px; color: var(--accent);">СКАНИРОВАНИЕ APPLE MUSIC...</p>
   </div>
 
   <div id="screen-game" class="container hidden">
@@ -115,7 +120,7 @@
     </div>
 
     <div class="question-title" id="question-title">Угадай исполнителя:</div>
-    <div class="hints-section"><div class="hint-text" id="hint-1">💡 Жанр: ...</div></div>
+    <div class="hints-section"><div class="hint-text" id="hint-1">Жанр: ...</div></div>
     <div class="options-grid" id="options-grid"></div>
     
     <div class="controls-row">
@@ -573,7 +578,7 @@
       currentRound++;
       roundStartScore = scores[currentPlayer];
       updateStatsUI();
-      document.getElementById('hint-1').innerHTML = `💡 Жанр: ${activeQuestion.genre} | Год: ${activeQuestion.year}`;
+      document.getElementById('hint-1').innerHTML = `Жанр: ${activeQuestion.genre} | Год: ${activeQuestion.year}`;
       
       setupOptions();
       playAudio(activeQuestion);
@@ -692,7 +697,7 @@
     function showTrackDetails() {
       const detailsBox = document.getElementById('track-details');
       detailsBox.classList.remove('hidden');
-      detailsBox.innerHTML = `<strong>🎵 ${esc(activeQuestion.artist)} — ${esc(activeQuestion.title)} (${esc(String(activeQuestion.year))})</strong>`;
+      detailsBox.innerHTML = `<strong>${esc(activeQuestion.artist)} — ${esc(activeQuestion.title)} (${esc(String(activeQuestion.year))})</strong>`;
     }
 
     window.useRemoveTwo = function(fromGuest) {
