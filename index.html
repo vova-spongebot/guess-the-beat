@@ -86,6 +86,7 @@
       <label><input type="checkbox" class="sec-chk" value="rock" checked> Рок</label>
       <label><input type="checkbox" class="sec-chk" value="hiphop" checked> Хип-хоп</label>
       <label><input type="checkbox" class="sec-chk" value="electronic" checked> Клубная электроника</label>
+      <label><input type="checkbox" class="sec-chk" value="ru" checked> Русское инди, поп, рок</label>
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:16px;font-size:0.95rem;">
       <span>Раундов:</span>
@@ -133,7 +134,7 @@
   </div>
 
   <div id="screen-end" class="container hidden">
-    <h2>Раунд окончен!</h2>
+    <h2>Рейв окончен!</h2>
     <p style="margin: 16px 0; font-size: 1.1rem; line-height: 1.5;" id="end-summary"></p>
     <div id="end-table"></div>
     <button class="btn" style="width: 100%;" onclick="resetAndStart()">В МЕНЮ</button>
@@ -187,16 +188,21 @@
                     genre: /hip|rap/i, deny: null },
       electronic: { tags: null,
                     genre: /electro|dance|house|techno|ambient|acid|edm|downtempo|idm|chill/i,
-                    deny: /trance|drum|jungle|dubstep|hardcore|hip|rap|pop|rock|metal|r&b|soul|latin|reggae|country|classical|soundtrack/i }
+                    deny: /trance|drum|jungle|dubstep|hardcore|hip|rap|pop|rock|metal|r&b|soul|latin|reggae|country|classical|soundtrack/i },
+      ru:         { tags: ['russian rock', 'russian pop', 'russian indie', 'russian'],
+                    apple: ['русский рок', 'русский поп', 'русское инди', 'российский поп'], country: 'ru',
+                    genre: /russian|рус|росс|pop|rock|indie|alternative|поп|рок|инди|альтернатив/i,
+                    deny: /hip|rap|хип|рэп|electro|dance|latin|k-pop|j-pop|classical|soundtrack|chanson|шансон|folk|фольк|metal|метал/i }
     };
     // известные исполнители для ложных вариантов ответа
     const SEED_ARTISTS = {
       pop: ['Madonna','Britney Spears','Michael Jackson','Taylor Swift','ABBA','Rihanna','Katy Perry','Lady Gaga','Ariana Grande','Justin Timberlake','Beyoncé','Dua Lipa','Ed Sheeran','Adele','Kylie Minogue','Bruno Mars','Shakira','Whitney Houston','Cher','Backstreet Boys','Spice Girls','Celine Dion','Elton John','George Michael'],
       rock: ['Queen','Nirvana','Led Zeppelin','AC/DC','Metallica','The Beatles','The Rolling Stones','Pink Floyd','Guns N\' Roses','Foo Fighters','Red Hot Chili Peppers','Green Day','Linkin Park','U2','Coldplay','Radiohead','Aerosmith','Bon Jovi','Muse','Arctic Monkeys','KISS','Deep Purple','The Doors','Oasis'],
       hiphop: ['Eminem','Jay-Z','Kanye West','Drake','Kendrick Lamar','50 Cent','Snoop Dogg','Dr. Dre','2Pac','The Notorious B.I.G.','Nas','Ice Cube','Nelly','Lil Wayne','Travis Scott','Cardi B','Post Malone','OutKast','Missy Elliott','Run-D.M.C.','Wu-Tang Clan','Public Enemy'],
+      ru: ['Кино','Земфира','Ленинград','ДДТ','Мумий Тролль','Сплин','Звери','Баста','Полина Гагарина','Zivert','Монеточка','Нервы','Каста','Агата Кристи','Би-2','Сектор Газа','Танцы Минус','Пикник','Алиса','Ночные снайперы','Любэ','Наутилус Помпилиус','Чайф','Гражданская оборона','Руки Вверх!','Иванушки International','Валерия','Максим','Дайте танк (!)','Shortparis','Скриптонит','Louna','Градусы','Therr Maitz','Грибы','The Hatters','Здоб ши Здуб','Max Korzh','Artik & Asti'],
       electronic: ['Daft Punk','The Prodigy','Calvin Harris','David Guetta','Avicii','Swedish House Mafia','deadmau5','Skrillex','Martin Garrix','Tiësto','Armin van Buuren','Fatboy Slim','The Chemical Brothers','Moby','Kraftwerk','Aphex Twin','Carl Cox','Paul Oakenfold','Faithless','Basement Jaxx','Orbital','Underworld','Eric Prydz','Disclosure','Kaskade','Zedd']
     };
-    const extraArtists = { pop: new Set(), rock: new Set(), hiphop: new Set(), electronic: new Set() };
+    const extraArtists = { pop: new Set(), rock: new Set(), hiphop: new Set(), electronic: new Set(), ru: new Set() };
 
     const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
     const shuffle = a => a.sort(() => 0.5 - Math.random());
@@ -212,6 +218,7 @@
     function termFor(sec) {
       return sec === 'electronic' ? pickRand(ALL_STYLE_TERMS) : pickRand(SECTIONS[sec].tags);
     }
+    const countryFor = sec => SECTIONS[sec].country || null;
     const capitalize = t => t.replace(/\b\w/g, m => m.toUpperCase());
 
     function toTrack(x, sec) {
@@ -222,7 +229,7 @@
     async function resolveCandidate(c) {
       if (c.preview) return c;
       const q = encodeURIComponent(c.artist + ' ' + c.title);
-      const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=5`);
+      const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=5${countryFor(c.sec) ? '&country=' + countryFor(c.sec) : ''}`);
       const d = await res.json();
       const main = norm(c.artist.split(/,|&| feat\.?| ft\.?| x /i)[0]);
       const hit = (d.results || []).find(x => x.previewUrl && norm(x.artistName).includes(main) && genreOk(c.sec, x.primaryGenreName));
@@ -248,7 +255,8 @@
         } catch (e) { console.warn('Last.fm недоступен, перехожу на поиск Apple:', e); lfDisabled = true; }
       }
       try {
-        const url = `https://itunes.apple.com/search?term=${encodeURIComponent(tag)}&entity=song&limit=50&country=${pickRand(STORES)}`;
+        const term = SECTIONS[sec].apple ? pickRand(SECTIONS[sec].apple) : tag;
+        const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=50&country=${countryFor(sec) || pickRand(STORES)}`;
         const d = await (await fetch(url)).json();
         (d.results || []).filter(x => x.previewUrl && genreOk(sec, x.primaryGenreName)).forEach(x => streamPool.push(toTrack(x, sec)));
       } catch (e) { console.warn('Поиск Apple недоступен', e); }
